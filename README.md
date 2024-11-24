@@ -1,2 +1,9 @@
 # AtualizaPacotesWinget
-Script para atualização automática de pacotes usando o winget, com suporte para exclusão de pacotes específicos. Ideal para manter seu sistema atualizado com facilidade e controle.
+
+## Descrição
+Este script atualiza pacotes usando o winget, com opções de exclusão de determinados pacotes.
+
+## Uso
+Para executar o script, abra um terminal com privilégios administrativos e execute:
+```powershell
+.\AtualizaPacotesWinget.ps1
