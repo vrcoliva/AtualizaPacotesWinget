@@ -29,8 +29,31 @@ function Check-Admin {
     }
 }
 
-# Defina a lista de excecoes
-$excecoes = @("OpenVPNTechnologies.OpenVPN", "Microsoft.Edge")
+# Funcao para verificar conexao com a Internet
+function Check-Internet {
+    <#
+    .SYNOPSIS
+    Verifica se ha conexao com a Internet.
+
+    .DESCRIPTION
+    Verifica se ha conexao com a Internet tentando acessar um site de teste. Se nao houver conexao,
+    exibe uma mensagem amigavel e encerra o script.
+
+    .NOTES
+    Autor: Vitor Colivati
+    Versao: 1.0
+    #>
+    try {
+        $webclient = New-Object System.Net.WebClient
+        $webclient.DownloadString("http://www.google.com") | Out-Null
+        Write-InfoMessage "Conexao com a Internet verificada."
+    }
+    catch {
+        Write-ErrorMessage "Nenhuma conexao com a Internet encontrada. Por favor, verifique sua conexao e tente novamente."
+        Pause
+        exit
+    }
+}
 
 # Funcao para exibir mensagens verbose
 function Write-VerboseMessage {
@@ -98,6 +121,35 @@ function Write-InfoMessage {
     Write-Host "[INFO] $message" -ForegroundColor Yellow
 }
 
+# Defina a lista de excecoes
+$excecoes = @()
+
+# Funcao para solicitar excecoes ao usuario
+function Solicitar-Excecoes {
+    <#
+    .SYNOPSIS
+    Solicita ao usuario os IDs dos pacotes a serem excluidos das atualizacoes.
+
+    .DESCRIPTION
+    Exibe uma lista de pacotes que tem atualizacoes disponiveis e solicita ao usuario que informe os IDs dos pacotes a serem excluidos.
+
+    .NOTES
+    Autor: Vitor Colivati
+    Versao: 1.0
+    #>
+    param (
+        [string[]]$ids
+    )
+
+    Write-InfoMessage "Pacotes com atualizacoes disponiveis:"
+    foreach ($id in $ids) {
+        Write-Host $id
+    }
+    Write-InfoMessage "Digite os IDs dos pacotes que deseja excluir das atualizacoes, separados por virgula:"
+    $inputExcecoes = Read-Host
+    return $inputExcecoes -split ","
+}
+
 # Funcao para executar a atualizacao
 function Atualizar-Pacotes {
     <#
@@ -132,37 +184,50 @@ function Atualizar-Pacotes {
     # Extrai os IDs dos pacotes, excluindo o cabecalho e a lista de excecoes
     Write-VerboseMessage "Extraindo IDs dos pacotes..."
     $ids = ($resultados | Select-String -Pattern '^(?!Nome).*?\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$').Matches |
-        ForEach-Object { $_.Groups[1].Value } | Where-Object { -not ($excecoes -contains $_) }
+        ForEach-Object { $_.Groups[1].Value }
 
     if ($ids.Count -eq 0) {
         Write-InfoMessage "Nenhum pacote elegivel para atualizacao foi encontrado."
         return
     }
 
+    # Solicita as excecoes ao usuario
+    $excecoes = Solicitar-Excecoes -ids $ids
+
     # Inicializa contador de pacotes atualizados
     $count = 0
 
     # Execute o comando winget upgrade para cada ID que nao esteja na lista de excecoes
     foreach ($id in $ids) {
-        try {
-            Write-VerboseMessage "Atualizando pacote com ID: $id"
-            winget upgrade --id $id --accept-package-agreements
-            $count++
-        }
-        catch {
-            Write-ErrorMessage "Falha ao atualizar pacote com ID: $id. Erro: $_"
+        if (-not ($excecoes -contains $id)) {
+            try {
+                Write-VerboseMessage "Atualizando pacote com ID: $id"
+                winget upgrade --id $id --accept-package-agreements
+                $count++
+            }
+            catch {
+                Write-ErrorMessage "Falha ao atualizar pacote com ID: $id. Erro: $_"
+            }
         }
     }
 
-    # Retorne o contador
-    return $count
+    # Retorne o contador e a lista de excecoes
+    return [PSCustomObject]@{
+        Count = $count
+        Excecoes = $excecoes
+    }
 }
 
 # Verifique se o script esta sendo executado com privilegios administrativos
 Check-Admin
 
-# Execute a funcao principal e obtenha o numero de pacotes atualizados
-$pacotesAtualizados = Atualizar-Pacotes -excecoes $excecoes
+# Verifique se ha conexao com a Internet
+Check-Internet
+
+# Execute a funcao principal e obtenha o numero de pacotes atualizados e a lista de excecoes
+$resultado = Atualizar-Pacotes -excecoes $excecoes
+$pacotesAtualizados = $resultado.Count
+$excecoes = $resultado.Excecoes
 
 # Mensagem final
 Write-VerboseMessage "Todas as atualizacoes concluidas. $pacotesAtualizados pacotes foram atualizados."
