@@ -9,4 +9,4 @@ Para executar o script, abra um terminal com privilégios administrativos e exec
 .\AtualizaPacotesWinget.ps1
 ```
 
-Para usar esse script, verifique se o arquivo está com salvo com UTF-8 com BOM. Como ele utiliza emojis, em versões antigas do PowerShell, pode apresentar erro.
+Para usar esse script, verifique se o arquivo está com salvo com UTF-8 com BOM. Como ele utiliza emojis, versões antigas do PowerShell pode apresentar erro.
