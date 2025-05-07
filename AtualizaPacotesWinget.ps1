@@ -1,13 +1,51 @@
 # Força a saída em UTF-8 para evitar problemas com acentuação
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+# Funcao para verificar privilegios administrativos
+function VerificarPrivilegios {
+    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+
+	if (!$isAdmin) {
+		Write-Warning "`n🔐 O script não está sendo executado com privilégios administrativos.`nPor favor, feche este terminal e abra-o novamente como administrador."
+		Start-Sleep -Seconds 3
+		Exit
+	}
+ 
+	Write-Host "🔓 O script esta sendo executado com privilegios administrativos."
+}
+
+# Funcao para verificar e ajustar a politica de execução
+function VerificarPolitica {
+    $currentPolicy = Get-ExecutionPolicy
+
+    if ($currentPolicy -eq "RemoteSigned" -or $currentPolicy -eq "Unrestricted") {
+        Write-Host "🛡️ A política de execução ja é adequada: $currentPolicy.`n"
+        return
+    }
+
+    Write-Host "Politica de execução atual: $currentPolicy. Alterando para RemoteSigned..."
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+
+    if ($?) {
+        Write-Host "`nPolitica de execução alterada para RemoteSigned.`n"
+    } else {
+        Write-Error "`nFalha ao alterar a politica de execução. O script sera encerrado.`n"
+        Start-Sleep -Seconds 3
+        Exit
+    }
+}
+
 # Verifica se o winget está instalado
+$version = winget --version
 function VerificarWinget {
     if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
         Write-Host "❌ O comando winget não está instalado. Instale-o via Microsoft Store ou atualize o Windows.`n" -ForegroundColor Red
         Pause
         exit 1
     }
+	Write-Host "O Winget se encontra na versão '$version'"
+	Start-Sleep -Seconds 4
+	Clear-Host
 }
 
 # Função para verificar atualizações via winget
@@ -124,7 +162,7 @@ function AtualizarTudoExceto {
 # Menu interativo
 function ExibirMenu {
     do {
-        Write-Host "📦 GERENCIADOR DE APLICATIVOS (winget)" -ForegroundColor Cyan
+        Write-Host "📦 GERENCIADOR DE APLICATIVOS (winget '$version')" -ForegroundColor Cyan
         Write-Host "1. Verificar atualizações"
         Write-Host "2. Atualizar um ou mais pacotes"
         Write-Host "3. Instalar um novo pacote"
@@ -156,5 +194,7 @@ function ExibirMenu {
 
 # ----------- Ponto de entrada do script -----------
 Clear-Host
+VerificarPrivilegios
+VerificarPolitica
 VerificarWinget
 ExibirMenu
