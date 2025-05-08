@@ -10,7 +10,7 @@ function VerificarPrivilegios {
 		Start-Sleep -Seconds 3
 		Exit
 	}
- 
+	
 	Write-Host "🔓 O script esta sendo executado com privilegios administrativos."
 }
 
@@ -23,34 +23,34 @@ function VerificarPolitica {
         return
     }
 
-    Write-Host "Politica de execução atual: $currentPolicy. Alterando para RemoteSigned..."
-    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+	Write-Host "🛡️ Politica de execução atual: $currentPolicy. Alterando para RemoteSigned..."
+	Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
 
-    if ($?) {
-        Write-Host "`nPolitica de execução alterada para RemoteSigned.`n"
-    } else {
-        Write-Error "`nFalha ao alterar a politica de execução. O script sera encerrado.`n"
-        Start-Sleep -Seconds 3
-        Exit
-    }
+	if (!$?) {
+		Write-Error "`n❌ Falha ao alterar a política de execução. O script será encerrado.`n"
+		Start-Sleep -Seconds 3
+		Exit
+	}
+
+	Write-Host "`n🛡️ Política de execução alterada para RemoteSigned.`n"
 }
 
 # Verifica se o winget está instalado
 $version = winget --version
 function VerificarWinget {
     if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
-        Write-Host "❌ O comando winget não está instalado. Instale-o via Microsoft Store ou atualize o Windows.`n" -ForegroundColor Red
+        Write-Host "`n❌ O comando winget não está instalado. Instale-o via Microsoft Store ou atualize o Windows.`n" -ForegroundColor Red
         Pause
         exit 1
     }
-	Write-Host "O Winget se encontra na versão '$version'"
+	Write-Host "🌎 O Winget se encontra na versão '$version'"
 	Start-Sleep -Seconds 4
 	Clear-Host
 }
 
 # Função para verificar atualizações via winget
 function VerificarAtualizacoes {
-    Write-Host "`n🔍 Verificando atualizações via winget..." -ForegroundColor Cyan
+    Write-Host "`n🔍 Verificando aplicativos com atualizações disponíveis...`n" -ForegroundColor Cyan
     try {
         winget upgrade --disable-interactivity
     }
@@ -62,8 +62,6 @@ function VerificarAtualizacoes {
 
 # Função para obter os IDs dos pacotes com atualização disponível
 function ObterIds {
-    Write-Host "`n🔍 Obtendo lista de aplicativos com atualização disponível..." -ForegroundColor Cyan
-    
     try {
         $linhas = winget upgrade | findstr /v "^[-\\]" | findstr /v "^$"
 
@@ -89,7 +87,7 @@ function InstalarPacote {
     $packageName = Read-Host "Digite o nome do pacote que deseja instalar (ex: Notepad++)"
     
     if ([string]::IsNullOrWhiteSpace($packageName)) {
-        Write-Host "❌ Nome do pacote inválido. Tente novamente." -ForegroundColor Red
+        Write-Host "`n❌ Nenhum nome foi inforamdo. Tente novamente." -ForegroundColor Red
         return
     }
 
@@ -99,7 +97,7 @@ function InstalarPacote {
     $idEscolhido = Read-Host "`nDigite o ID do pacote que deseja instalar"
 
     if ([string]::IsNullOrWhiteSpace($idEscolhido)) {
-        Write-Host "❌ ID inválido. Tente novamente." -ForegroundColor Red
+        Write-Host "`n❌ Nenhum ID foi informado. Tente novamente." -ForegroundColor Red
         return
     }
 
@@ -109,7 +107,6 @@ function InstalarPacote {
 
 # Função para atualizar um ou mais pacotes via winget
 function AtualizarPacote {
-    Write-Host "`n🔍 Verificando aplicativos com atualização disponível..." -ForegroundColor Cyan
     VerificarAtualizacoes
 
     $idsInput = Read-Host "`nDigite os IDs dos aplicativos que deseja atualizar (separados por ';')"
@@ -145,7 +142,7 @@ function AtualizarTudoExceto {
 
         foreach ($id in $ids) {
             if ($excecoes -contains $id) {
-                Write-Host "⏭️ Pulando atualização de $id conforme solicitado." -ForegroundColor Yellow
+                Write-Host "`n⏭️ Pulando atualização de $id conforme solicitado." -ForegroundColor Yellow
                 continue
             }
 
@@ -176,7 +173,7 @@ function ExibirMenu {
             "3" { InstalarPacote }
             "4" { AtualizarTudoExceto }
             "0" {
-                Write-Host "`n👋 Encerrando script...`n" -ForegroundColor Magenta
+                Write-Host "`n👋 Encerrando o script...`n" -ForegroundColor Magenta
                 break
             }
             default {
